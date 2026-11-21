@@ -166,6 +166,9 @@ def poll():
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "generate"
+    if cmd == "poll" and not (C.TELEGRAM_BOT_TOKEN and C.TELEGRAM_CHAT_ID):
+        print("Telegram not set up yet — nothing to poll.")
+        return
     try:
         if cmd == "generate":
             state = load()
