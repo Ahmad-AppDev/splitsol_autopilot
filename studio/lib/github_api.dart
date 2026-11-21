@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:pinenacl/x25519.dart' show PublicKey;
-import 'package:pinenacl/public.dart' show SealedBox;
+import 'package:pinenacl/x25519.dart';
 
 /// Talks to the splitsol_autopilot repo: reads story/state.json, lists workflow runs,
 /// triggers the workflow, and saves your API keys as encrypted GitHub secrets.
