@@ -6,12 +6,68 @@
     "friendship": 100
   },
   "history": [],
-  "pending": null,
+  "pending": {
+    "kind": "carousel",
+    "number": 1,
+    "attempt": 1,
+    "carousel": {
+      "title": "7 Types of Friends When the Bill Arrives",
+      "cover_image": "A group of Pakistani friends sitting around a dining table at a restaurant, looking at a single receipt with varied shocked, nervous, and sneaky expressions.",
+      "points": [
+        {
+          "headline": "The 'I Only Had Chai' Guy",
+          "body": "He ordered one tea, ate half your chicken karahi, but insists on paying exactly Rs 180. Math genius.",
+          "image": "A young guy smiling sheepishly while holding a small teacup, looking at a massive spread of food on the table."
+        },
+        {
+          "headline": "The Signal Disappears Friend",
+          "body": "The second the waiter brings the check, their 4G mysteriously drops and JazzCash refuses to open.",
+          "image": "A person aggressively shaking their smartphone while staring at a loading screen, standing outside a dhaba."
+        },
+        {
+          "headline": "The Fake Wallet Searcher",
+          "body": "Pats six pockets in slow motion, knowing deep down they brought zero cash and a dead card.",
+          "image": "A guy frantically checking every pocket of his shalwar kameez with an overly dramatic worried face."
+        },
+        {
+          "headline": "The 'Send Me Account Details' Phantom",
+          "body": "Promises to transfer via Easypaisa the moment they reach home. You will see that money in 2027.",
+          "image": "A friend waving goodbye from a Careem back seat, holding up their phone as the car pulls away."
+        },
+        {
+          "headline": "The Group Bank",
+          "body": "Pays the entire Rs 18,000 bill on their card just to avoid the awkward 20-minute table calculation.",
+          "image": "A tired-looking girl tapping her credit card at a counter while her friends cheer in the background."
+        },
+        {
+          "headline": "The Exact Paisa Splitter",
+          "body": "Calculates service tax, GST, and extra naan down to the rupee. Uses SplitSol so nobody gets cheated.",
+          "image": "A person smiling calmly while tapping on a smartphone screen at a restaurant table."
+        },
+        {
+          "headline": "The Memory Loss Patient",
+          "body": "Genuinely forgets they ate dinner with you last night. 'Wait, did we get fast food or biryani?'",
+          "image": "A guy scratching his head with thought bubbles showing images of burgers and biryani plates."
+        }
+      ],
+      "caption": "We all have that one friend who suddenly loses internet when the bill hits the table 👀\n\nSend this to the friend who still owes you for last weekend!\n\nSplitSol — split bills fairly. Link in bio.\n\n#SplitSol #PakistaniMemes #DesiProblems #KarachiEats #LahoreFoodies #HostelLife"
+    },
+    "slides": [
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide01.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide02.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide03.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide04.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide05.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide06.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide07.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide08.jpg",
+      "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/carousel1-v1/slide09.jpg"
+    ],
+    "qa": [],
+    "feedback": null,
+    "created_at": "2026-11-21T14:25:20+00:00"
+  },
   "last_posted": null,
   "telegram_offset": 0,
-  "last_error": {
-    "command": "generate",
-    "message": "HTTPSConnectionPool(host='generativelanguage.googleapis.com', port=443): Read timed out. (read timeout=180)",
-    "at": "2026-11-21T14:04:51+00:00"
-  }
+  "last_error": null
 }
