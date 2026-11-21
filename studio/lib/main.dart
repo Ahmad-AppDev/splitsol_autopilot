@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -471,16 +473,32 @@ class _EpisodeViewState extends State<EpisodeView> {
   @override
   void initState() {
     super.initState();
-    if (widget.episode.videoUrl.isNotEmpty) {
-      ctl = VideoPlayerController.networkUrl(Uri.parse(widget.episode.videoUrl))
-        ..initialize().then((_) {
-          if (mounted) setState(() {});
-        }).catchError((e) {
-          if (mounted) setState(() => videoError = '$e');
-        })
-        ..addListener(() {
-          if (mounted) setState(() {});
-        });
+    if (widget.episode.videoUrl.isNotEmpty) _load();
+  }
+
+  /// macOS's player can't open GitHub release links directly (no file type on the redirect),
+  /// so download the reel to a temp .mp4 first and play it from disk.
+  Future<void> _load() async {
+    try {
+      final e = widget.episode;
+      final file = File('${Directory.systemTemp.path}/splitsol_day${e.day}_v${e.attempt}_${e.videoUrl.hashCode}.mp4');
+      if (!await file.exists() || await file.length() == 0) {
+        final r = await http.get(Uri.parse(e.videoUrl));
+        if (r.statusCode != 200) throw Exception('download failed (${r.statusCode})');
+        await file.writeAsBytes(r.bodyBytes);
+      }
+      final c = VideoPlayerController.file(file);
+      await c.initialize();
+      c.addListener(() {
+        if (mounted) setState(() {});
+      });
+      if (!mounted) {
+        c.dispose();
+        return;
+      }
+      setState(() => ctl = c);
+    } catch (err) {
+      if (mounted) setState(() => videoError = '$err');
     }
   }
 
