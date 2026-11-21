@@ -8,10 +8,15 @@ on:
   workflow_dispatch:
     inputs:
       command:
-        description: "generate | approve | redo | refresh | poll"
+        description: "generate | approve | redo | discard | refresh | poll"
         type: choice
-        options: [generate, approve, redo, refresh, poll]
+        options: [generate, approve, redo, discard, refresh, poll]
         default: generate
+      kind:
+        description: "What to make (generate)"
+        type: choice
+        options: [carousel, story]
+        default: carousel
       feedback:
         description: "Note for redo (optional)"
         required: false
@@ -66,6 +71,7 @@ jobs:
           POLLINATIONS_MODEL: ${{ vars.POLLINATIONS_MODEL || 'flux' }}
           CHARACTER_REF_URL: ${{ vars.CHARACTER_REF_URL }}
           FEEDBACK: ${{ inputs.feedback }}
+          KIND: ${{ inputs.kind || vars.DAILY_KIND || 'carousel' }}
           TTS_VOICE: ${{ vars.TTS_VOICE || 'en-US-AndrewMultilingualNeural' }}
         run: python -m autopilot.main ${{ steps.cmd.outputs.c }}
 
