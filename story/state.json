@@ -6,59 +6,7 @@
     "friendship": 100
   },
   "history": [],
-  "pending": {
-    "day": 1,
-    "attempt": 1,
-    "episode": {
-      "title": "THE TRIP",
-      "scenes": [
-        {
-          "narration": "You're going to Hunza with four friends. You booked the hotel. You paid the deposit. Twenty-four thousand rupees.",
-          "image": "YOU standing proudly next to a packed white car on a city street at dawn, four friends loading bags into the boot behind him, mountains hinted far away"
-        },
-        {
-          "narration": "Nobody has sent you a single rupee yet. But it's fine. It's a trip. Vibes first.",
-          "image": "YOU sitting in the front passenger seat of a car, looking at his phone with a forced smile, friends laughing in the back seat, highway through the windscreen"
-        },
-        {
-          "narration": "First stop, the petrol pump. Bilal checks his pockets. Then checks them again.",
-          "image": "Bilal (tall, curly black hair, denim jacket) patting his empty jacket pockets with a fake shocked face at a roadside petrol pump, YOU watching from beside the car with narrowed eyes"
-        },
-        {
-          "narration": "He forgot his wallet. Again. Everyone looks at you.",
-          "image": "close-up of YOU looking nervous with a sweat drop, three friends behind him all staring at him expectantly, petrol pump lights at dusk"
-        },
-        {
-          "narration": "Do you cover him, or call him out in front of everyone? Comment COVER or CALLOUT.",
-          "image": "YOU standing at the petrol pump holding his wallet in one hand, looking straight at the viewer, Bilal grinning sheepishly behind him, dramatic sunset over mountains"
-        }
-      ],
-      "hud_after": {
-        "paid": 31500,
-        "share": 6300,
-        "friendship": 92
-      },
-      "vote": {
-        "question": "Cover Bilal or call him out?",
-        "options": [
-          "COVER",
-          "CALLOUT"
-        ]
-      },
-      "caption": "🚗 Day 1: Bilal forgot his wallet. Again.\n\nComment COVER or CALLOUT — the next episode follows the winner.\n\nSplitSol — link in bio\n#hunza #roadtrip #friends #splitsol"
-    },
-    "video_url": "https://github.com/Ahmad-AppDev/splitsol_autopilot/releases/download/day1-v1/splitsol-the-trip-day1.mp4",
-    "hud_before": {
-      "paid": 0,
-      "share": 0,
-      "friendship": 100
-    },
-    "notes": [],
-    "qa": [],
-    "vote_result": null,
-    "feedback": null,
-    "created_at": "2026-11-21T13:27:49+00:00"
-  },
+  "pending": null,
   "last_posted": null,
   "telegram_offset": 0,
   "last_error": null
