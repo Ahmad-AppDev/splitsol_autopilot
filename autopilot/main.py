@@ -76,7 +76,7 @@ def generate(feedback=None):
         qa_notes.append("⚠️ POLLINATIONS_TOKEN secret not found: used the low-quality anonymous model")
     for i, sc in enumerate(ep["scenes"]):
         prev = state.get("pending") or {}
-        attempt_no = prev.get("attempt", 0) + 1 if prev.get("day") == day else 1
+        attempt_no = prev.get("attempt", 0) + 1 if prev.get("day") == day and prev.get("kind", "story") == "story" else 1
         seed = C.CHARACTER_SEED + day * 100 + i * 7 + attempt_no * 5000
         img, ok, why = None, False, ""
         for attempt in range(3):
@@ -104,13 +104,14 @@ def generate(feedback=None):
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", "1.5", "-i", str(mp4), "-frames:v", "1",
                     str(work / "cover.jpg")], check=True)
 
-    attempt = (state.get("pending") or {}).get("attempt", 0) + 1 if (state.get("pending") or {}).get("day") == day else 1
+    _p = state.get("pending") or {}
+    attempt = _p.get("attempt", 0) + 1 if _p.get("day") == day and _p.get("kind", "story") == "story" else 1
     tag = f"day{day}-v{attempt}"
     subprocess.run(["gh", "release", "create", tag, str(mp4), "--title", f"THE TRIP · Day {day} (v{attempt})",
                     "--notes", ep["caption"]], check=True)
     video_url = f"https://github.com/{C.GITHUB_REPOSITORY}/releases/download/{tag}/{mp4.name}"
 
-    state["pending"] = {"day": day, "attempt": attempt, "episode": ep, "video_url": video_url,
+    state["pending"] = {"kind": "story", "day": day, "attempt": attempt, "episode": ep, "video_url": video_url,
                         "hud_before": state["hud"], "notes": [], "qa": qa_notes, "vote_result": vote_result,
                         "feedback": feedback, "created_at": now()}
     state["last_error"] = None
@@ -119,6 +120,51 @@ def generate(feedback=None):
     if C.TELEGRAM_BOT_TOKEN and C.TELEGRAM_CHAT_ID:
         tg.send_for_approval(mp4, day, ep["caption"], notes)
     print("Sent Day", day, "for approval:", video_url)
+
+
+# ---------- carousel ----------
+
+def generate_carousel(feedback=None):
+    from . import carousel
+    state = load()
+    c = carousel.write(state, feedback)
+    n = len(state.get("carousels", [])) + 1
+    prev = state.get("pending") or {}
+    attempt = prev.get("attempt", 0) + 1 if prev.get("kind") == "carousel" else 1
+    print(f"[images] provider={C.IMAGE_PROVIDER} model={C.POLLINATIONS_MODEL} key={'yes' if C.POLLINATIONS_TOKEN else 'NO'}")
+    imgs = carousel.draw_images(c, C.CHARACTER_SEED + n * 300 + attempt * 5000)
+    paths = carousel.render(c, imgs, C.OUT / f"carousel{n}")
+    tag = f"carousel{n}-v{attempt}"
+    subprocess.run(["gh", "release", "create", tag, *map(str, paths), "--title", f"Carousel {n}: {c['title']} (v{attempt})",
+                    "--notes", c["caption"]], check=True)
+    urls = [f"https://github.com/{C.GITHUB_REPOSITORY}/releases/download/{tag}/{p.name}" for p in paths]
+    qa = [] if C.POLLINATIONS_TOKEN else ["⚠️ POLLINATIONS_TOKEN not set: used the low-quality anonymous model"]
+    state["pending"] = {"kind": "carousel", "number": n, "attempt": attempt, "carousel": c, "slides": urls,
+                        "qa": qa, "feedback": feedback, "created_at": now()}
+    state["last_error"] = None
+    save(state)
+    print("Carousel ready:", c["title"])
+
+
+def post_carousel(state):
+    p = state["pending"]
+    c = p["carousel"]
+    results, ig_id = [], None
+    if C.IG_ACCESS_TOKEN and C.IG_USER_ID:
+        from . import instagram
+        try:
+            ig_id = instagram.publish_carousel(p["slides"], c["caption"])
+            results.append("✅ Instagram carousel posted")
+        except Exception as e:
+            results.append(f"❌ Instagram failed: {e}")
+    if not results:
+        results.append("📋 Marked as posted — post it manually (no Instagram keys set yet)")
+    results.append("ℹ️ TikTok photo posts: upload the slides by hand for now")
+    state.setdefault("carousels", []).append({"number": p["number"], "title": c["title"], "slides": p["slides"],
+                                              "caption": c["caption"], "ig_media_id": ig_id,
+                                              "posted_at": now(), "results": results})
+    state["pending"] = None
+    save(state)
 
 
 # ---------- post ----------
@@ -191,24 +237,33 @@ def main():
         print("Telegram not set up yet — nothing to poll.")
         return
     try:
+        kind = os.environ.get("KIND") or "carousel"
         if cmd == "generate":
             state = load()
             if state.get("pending"):
-                tg.send(f"⏰ Day {state['pending']['day']} is still waiting for approval.")
+                print("Something is already waiting for approval; not making a new one.")
                 return
-            generate()
+            generate_carousel() if kind == "carousel" else generate()
         elif cmd == "approve":
             state = load()
             if not state.get("pending"):
                 raise SystemExit("Nothing pending to approve.")
-            post(state)
+            post_carousel(state) if state["pending"].get("kind") == "carousel" else post(state)
         elif cmd == "redo":
             state = load()
             if not state.get("pending"):
                 raise SystemExit("Nothing pending to redo.")
-            generate(feedback=os.environ.get("FEEDBACK") or "Make a different, funnier version.")
+            fb = os.environ.get("FEEDBACK") or ""
+            if state["pending"].get("kind") == "carousel":
+                generate_carousel(feedback=fb or None)
+            else:
+                generate(feedback=fb or "Make a different, funnier version.")
         elif cmd == "poll":
             poll()
+        elif cmd == "discard":
+            state = load()
+            state["pending"] = None
+            save(state)
         elif cmd == "refresh":
             if C.IG_ACCESS_TOKEN:
                 from . import instagram

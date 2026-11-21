@@ -33,16 +33,16 @@ def full_prompt(scene):
 _last_call = 0.0
 
 
-def _pollinations(prompt, seed):
+def _pollinations(prompt, seed, size):
     """gen.pollinations.ai with your key (free credits from enter.pollinations.ai).
     Without a key it falls back to the anonymous endpoint (1 image / 45s, low quality)."""
     global _last_call
     wait = (0 if C.POLLINATIONS_TOKEN else 46) - (time.time() - _last_call)
     if wait > 0:
         time.sleep(wait)
-    params = {"width": C.W, "height": C.H, "seed": seed, "model": C.POLLINATIONS_MODEL, "nologo": "true"}
+    params = {"width": size[0], "height": size[1], "seed": seed, "model": C.POLLINATIONS_MODEL, "nologo": "true"}
     ref = C.env("CHARACTER_REF_URL")  # optional: public URL of the character reference image
-    if ref:
+    if ref and size == (C.W, C.H):
         params["image"] = ref
     if C.POLLINATIONS_TOKEN:
         url = "https://gen.pollinations.ai/image/" + urllib.parse.quote(prompt[:1800])
@@ -70,17 +70,19 @@ def _gemini_image(prompt, seed):
     raise RuntimeError("Gemini returned no image")
 
 
-def generate(scene, seed):
-    """Returns a PIL image sized W x H."""
-    prompt = full_prompt(scene)
+def generate(scene, seed, size=None, raw_prompt=None):
+    """Returns a PIL image cover-cropped to size (default the 9:16 reel size).
+    raw_prompt: use this exact prompt instead of the story-character prompt (carousels)."""
+    size = size or (C.W, C.H)
+    prompt = raw_prompt or full_prompt(scene)
     providers = [C.IMAGE_PROVIDER] + [p for p in ("pollinations", "gemini") if p != C.IMAGE_PROVIDER]
     last = None
     for provider in providers:
         for attempt in range(3):
             try:
-                raw = _pollinations(prompt, seed + attempt) if provider == "pollinations" else _gemini_image(prompt, seed)
+                raw = _pollinations(prompt, seed + attempt, size) if provider == "pollinations" else _gemini_image(prompt, seed)
                 img = Image.open(io.BytesIO(raw)).convert("RGB")
-                return fit(img)
+                return fit(img, size)
             except Exception as e:  # rate limit / timeout -> back off and retry
                 last = e
                 print(f"[images] {provider} attempt {attempt + 1} failed: {e}")
@@ -88,10 +90,11 @@ def generate(scene, seed):
     raise RuntimeError(f"All image providers failed: {last}")
 
 
-def fit(img):
-    """Cover-crop to exactly W x H."""
-    s = max(C.W / img.width, C.H / img.height)
+def fit(img, size=None):
+    """Cover-crop to exactly size."""
+    w, h = size or (C.W, C.H)
+    s = max(w / img.width, h / img.height)
     img = img.resize((round(img.width * s), round(img.height * s)), Image.LANCZOS)
-    l = (img.width - C.W) // 2
-    t = (img.height - C.H) // 2
-    return img.crop((l, t, l + C.W, t + C.H))
+    l = (img.width - w) // 2
+    t = (img.height - h) // 2
+    return img.crop((l, t, l + w, t + h))

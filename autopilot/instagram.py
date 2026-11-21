@@ -58,3 +58,21 @@ def refresh_token():
     r = requests.get("https://graph.instagram.com/refresh_access_token",
                      params={"grant_type": "ig_refresh_token", "access_token": C.IG_ACCESS_TOKEN}, timeout=60)
     return r.ok
+
+
+def publish_carousel(image_urls, caption):
+    """Instagram carousel (2–10 JPEGs at public URLs)."""
+    children = []
+    for u in image_urls[:10]:
+        c = _post(f"{C.IG_USER_ID}/media", image_url=u, is_carousel_item="true")
+        children.append(c["id"])
+    parent = _post(f"{C.IG_USER_ID}/media", media_type="CAROUSEL", children=",".join(children), caption=caption)
+    pid = parent["id"]
+    for _ in range(30):
+        st = _get(pid, fields="status_code").get("status_code")
+        if st in (None, "FINISHED"):
+            break
+        if st == "ERROR":
+            raise RuntimeError("Instagram carousel processing failed")
+        time.sleep(5)
+    return _post(f"{C.IG_USER_ID}/media_publish", creation_id=pid)["id"]
