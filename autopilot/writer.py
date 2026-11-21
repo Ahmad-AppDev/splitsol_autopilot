@@ -1,6 +1,7 @@
 """Writes the next episode with the Gemini API (free tier)."""
 import json
 import re
+import time
 import requests
 from . import config as C
 
@@ -15,7 +16,7 @@ SCHEMA_HINT = """Return ONLY JSON with this shape:
 
 
 API = "https://generativelanguage.googleapis.com/v1beta"
-_model = None
+_models = None
 
 
 def _headers():
@@ -28,14 +29,14 @@ def _version(name):
     return float(m.group(1)) if m else 0.0
 
 
-def pick_model():
-    """Newest text 'flash' model this key can call (Google renames models often)."""
-    global _model
-    if _model:
-        return _model
+def models():
+    """Flash models this key can call, best first (Google renames models often)."""
+    global _models
+    if _models:
+        return _models
     if C.GEMINI_MODEL:
-        _model = C.GEMINI_MODEL
-        return _model
+        _models = [C.GEMINI_MODEL]
+        return _models
     r = requests.get(f"{API}/models", params={"pageSize": 1000}, headers=_headers(), timeout=60)
     if r.status_code >= 400:
         raise RuntimeError(f"Gemini model list failed ({r.status_code}): {r.text[:300]}")
@@ -49,11 +50,27 @@ def pick_model():
         names.append(name)
     if not names:
         raise RuntimeError("No Gemini Flash model available for this key")
-    stable = [n for n in names if not any(t in n for t in ("preview", "exp", "lite"))]
-    pool = stable or names
-    _model = sorted(pool, key=lambda n: (_version(n), "latest" not in n, -len(n)), reverse=True)[0]
-    print(f"[gemini] using model {_model}")
-    return _model
+
+    def rank(n):
+        unstable = any(t in n for t in ("preview", "exp"))
+        return (not unstable, _version(n), "lite" not in n, "latest" not in n, -len(n))
+
+    _models = sorted(names, key=rank, reverse=True)[:4]
+    print(f"[gemini] models to try: {_models}")
+    return _models
+
+
+def pick_model():
+    return models()[0]
+
+
+def _call(model, body, light_thinking):
+    b = dict(body)
+    if light_thinking:
+        gc = dict(b.get("generationConfig", {}))
+        gc["thinkingConfig"] = {"thinkingLevel": "low"} if _version(model) >= 3 else {"thinkingBudget": 0}
+        b["generationConfig"] = gc
+    return requests.post(f"{API}/models/{model}:generateContent", headers=_headers(), json=b, timeout=300)
 
 
 def gemini(prompt, images=None, json_mode=True, model=None):
@@ -66,11 +83,27 @@ def gemini(prompt, images=None, json_mode=True, model=None):
     body = {"contents": [{"parts": parts}]}
     if json_mode:
         body["generationConfig"] = {"responseMimeType": "application/json", "temperature": 0.9}
-    r = requests.post(f"{API}/models/{model or pick_model()}:generateContent", headers=_headers(), json=body, timeout=180)
-    if r.status_code >= 400:
-        raise RuntimeError(f"Gemini error {r.status_code}: {r.text[:400]}")
-    text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(text) if json_mode else text
+    last = None
+    for m in ([model] if model else models()):
+        for attempt in range(2):
+            try:
+                r = _call(m, body, light_thinking=True)
+                if r.status_code == 400 and "thinking" in r.text.lower():
+                    r = _call(m, body, light_thinking=False)  # model doesn't take thinking settings
+                if r.status_code in (429, 500, 502, 503, 504):
+                    last = f"{m}: {r.status_code} {r.text[:200]}"
+                    time.sleep(10 * (attempt + 1))
+                    continue
+                if r.status_code >= 400:
+                    raise RuntimeError(f"Gemini error {r.status_code} ({m}): {r.text[:400]}")
+                cand = r.json()["candidates"][0]["content"]["parts"]
+                text = "".join(p.get("text", "") for p in cand if not p.get("thought"))
+                return json.loads(text) if json_mode else text
+            except requests.exceptions.Timeout:
+                last = f"{m}: timed out"
+                print(f"[gemini] {m} timed out (attempt {attempt + 1})")
+        print(f"[gemini] giving up on {m}, trying next model")
+    raise RuntimeError(f"Gemini failed on all models: {last}")
 
 
 def write_episode(state, vote_result, feedback=None):
