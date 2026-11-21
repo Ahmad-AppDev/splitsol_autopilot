@@ -46,9 +46,10 @@ def decide_vote(state):
 
 def make_script(state, vote_result, feedback):
     from . import writer, verify
-    if state["day"] == 1 and not state["history"] and not feedback:
-        ep = json.loads((C.STORY / "day1.json").read_text())
-        return ep
+    if state["day"] == 1 and not state["history"] and (not feedback or not C.GEMINI_API_KEY):
+        return json.loads((C.STORY / "day1.json").read_text())  # Day 1 is pre-written; redo = new art
+    if not C.GEMINI_API_KEY:
+        raise RuntimeError("Add the GEMINI_API_KEY secret in GitHub — it writes each new episode.")
     last_problems = None
     for _ in range(3):
         ep = writer.write_episode(state, vote_result, feedback)
@@ -74,7 +75,9 @@ def generate(feedback=None):
     if C.IMAGE_PROVIDER == "pollinations" and not C.POLLINATIONS_TOKEN:
         qa_notes.append("⚠️ POLLINATIONS_TOKEN secret not found: used the low-quality anonymous model")
     for i, sc in enumerate(ep["scenes"]):
-        seed = C.CHARACTER_SEED + day * 100 + i * 7 + (len(feedback) if feedback else 0)
+        prev = state.get("pending") or {}
+        attempt_no = prev.get("attempt", 0) + 1 if prev.get("day") == day else 1
+        seed = C.CHARACTER_SEED + day * 100 + i * 7 + attempt_no * 5000
         img, ok, why = None, False, ""
         for attempt in range(3):
             img = images.generate(sc["image"], seed + attempt * 1000)
