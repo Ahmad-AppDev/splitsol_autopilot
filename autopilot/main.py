@@ -1,7 +1,11 @@
-"""Entry point.
-  python -m autopilot.main generate   # daily: make next episode, verify, send to Telegram for approval
-  python -m autopilot.main poll       # every 15 min: handle your ✅ / 🔁 taps, post when approved
+"""Entry point (run by GitHub Actions, triggered by schedule or by the SplitSol Studio Mac app).
+  generate  # daily: make next episode, verify, mark it pending (the app notifies you)
+  approve   # you tapped Approve in the app: post it, move to the next day
+  redo      # you tapped Redo: make a new version (FEEDBACK env = your note)
+  poll      # optional Telegram mode
 """
+import datetime
+import os
 import json
 import subprocess
 import sys
@@ -19,6 +23,10 @@ def load():
 
 def save(s):
     STATE.write_text(json.dumps(s, indent=2, ensure_ascii=False) + "\n")
+
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
 # ---------- generate ----------
@@ -97,10 +105,13 @@ def generate(feedback=None):
     video_url = f"https://github.com/{C.GITHUB_REPOSITORY}/releases/download/{tag}/{mp4.name}"
 
     state["pending"] = {"day": day, "attempt": attempt, "episode": ep, "video_url": video_url,
-                        "hud_before": state["hud"], "notes": []}
+                        "hud_before": state["hud"], "notes": [], "qa": qa_notes, "vote_result": vote_result,
+                        "feedback": feedback, "created_at": now()}
+    state["last_error"] = None
     save(state)
     notes = "\n".join(qa_notes + ([f"🗳 Yesterday: {vote_result}"] if vote_result else []))
-    tg.send_for_approval(mp4, day, ep["caption"], notes)
+    if C.TELEGRAM_BOT_TOKEN and C.TELEGRAM_CHAT_ID:
+        tg.send_for_approval(mp4, day, ep["caption"], notes)
     print("Sent Day", day, "for approval:", video_url)
 
 
@@ -133,8 +144,12 @@ def post(state):
         except Exception as e:
             results.append(f"❌ TikTok failed: {e}")
 
+    if not results:
+        results.append("📋 Marked as posted — post it manually (no Instagram/TikTok keys set yet)")
     state["history"].append({"day": p["day"], "summary": ep["vote"]["question"] + " | " + ep["caption"].split("\n")[0],
-                             "options": ep["vote"]["options"], "ig_media_id": ig_id})
+                             "options": ep["vote"]["options"], "ig_media_id": ig_id,
+                             "video_url": p["video_url"], "caption": ep["caption"],
+                             "hud_after": ep["hud_after"], "posted_at": now(), "results": results})
     state["hud"] = ep["hud_after"]
     state["last_posted"] = {"day": p["day"], "ig_media_id": ig_id, "options": ep["vote"]["options"]}
     state["day"] = p["day"] + 1
@@ -173,9 +188,19 @@ def main():
         if cmd == "generate":
             state = load()
             if state.get("pending"):
-                tg.send(f"⏰ Reminder: Day {state['pending']['day']} is still waiting for your ✅ (scroll up).")
+                tg.send(f"⏰ Day {state['pending']['day']} is still waiting for approval.")
                 return
             generate()
+        elif cmd == "approve":
+            state = load()
+            if not state.get("pending"):
+                raise SystemExit("Nothing pending to approve.")
+            post(state)
+        elif cmd == "redo":
+            state = load()
+            if not state.get("pending"):
+                raise SystemExit("Nothing pending to redo.")
+            generate(feedback=os.environ.get("FEEDBACK") or "Make a different, funnier version.")
         elif cmd == "poll":
             poll()
         elif cmd == "refresh":
@@ -185,6 +210,12 @@ def main():
         else:
             raise SystemExit(f"unknown command {cmd}")
     except Exception as e:
+        try:
+            st = load()
+            st["last_error"] = {"command": cmd, "message": str(e)[:500], "at": now()}
+            save(st)
+        except Exception:
+            pass
         tg.send(f"❌ SplitSol autopilot ({cmd}) failed:\n{e}\n\n{traceback.format_exc()[-1500:]}")
         raise
 
