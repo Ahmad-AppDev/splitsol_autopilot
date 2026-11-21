@@ -14,6 +14,7 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   shared_preferences: ^2.3.2
   url_launcher: ^6.3.0
+  pinenacl: ^0.6.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

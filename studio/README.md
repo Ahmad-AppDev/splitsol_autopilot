@@ -3,7 +3,8 @@
 Your desktop control room for the daily THE TRIP reels.
 
 - 🔔 Mac notification when today's reel is ready (and when it's posted, or if a run fails)
-- ▶️ Watch today's reel, read the script + caption, see the stats and yesterday's vote
+- 🖼 Swipe through today's carousel, or ▶️ watch today's reel
+- ⏭ Skip something you don't want to post
 - ✅ **Approve & Post** → GitHub posts to Instagram + TikTok (or marks it posted, so you can post it by hand)
 - 🔁 **Redo** with a note ("make Bilal funnier") → a new version arrives in ~10 min
 - 📚 History of every posted day, with video, caption and results
@@ -32,7 +33,11 @@ The app asks for:
 1. **Repo:** `Ahmad-AppDev/splitsol_autopilot` (already filled in)
 2. **GitHub token:** create one at github.com/settings/personal-access-tokens → *Fine-grained token*
    → Repository access: **Only select repositories → splitsol_autopilot**
-   → Permissions: **Actions: Read and write**, **Contents: Read-only** → Generate → paste it in the app.
+   → Repository permissions: **Actions**, **Secrets**, **Variables** = Read and write · **Contents** = Read-only
+   → Generate → paste it in the app.
+3. **AI keys** (same Settings screen): paste your **Gemini** key and **Pollinations** key. The app saves them
+   as encrypted GitHub secrets. You never have to open GitHub settings. A ✓ shows next to keys that are saved.
+4. **Daily post:** Carousel (default) or Story reel.
 
 Allow notifications when macOS asks.
 
