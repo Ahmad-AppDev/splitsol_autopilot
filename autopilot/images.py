@@ -6,20 +6,28 @@ import requests
 from PIL import Image
 from . import config as C
 
-_STYLE = None
-
-
-def style_block():
-    global _STYLE
-    if _STYLE is None:
-        txt = (C.STORY / "style.md").read_text()
-        # collapse to one paragraph for the prompt
-        _STYLE = " ".join(l.strip().lstrip("- ") for l in txt.splitlines() if l.strip())
-    return _STYLE
+def _style():
+    """Reads story/style.md: CHARACTER, STYLE and FRIENDS lines."""
+    out = {"CHARACTER": "", "STYLE": "", "FRIENDS": {}}
+    for line in (C.STORY / "style.md").read_text().splitlines():
+        line = line.strip()
+        if line.startswith("CHARACTER:"):
+            out["CHARACTER"] = line.split(":", 1)[1].strip()
+        elif line.startswith("STYLE:"):
+            out["STYLE"] = line.split(":", 1)[1].strip()
+        elif "=" in line:
+            k, v = line.split("=", 1)
+            out["FRIENDS"][k.strip()] = v.strip()
+    return out
 
 
 def full_prompt(scene):
-    return f"{style_block()} SCENE: {scene}"
+    """Scene FIRST (image models only read ~70 words), then who's who, then style. Kept short."""
+    st = _style()
+    text = scene.replace("YOU", "the round-headed hero")
+    friends = [f"{name}: {desc}" for name, desc in st["FRIENDS"].items() if name in scene]
+    parts = [text, f"Hero: {st['CHARACTER']}"] + friends + [st["STYLE"]]
+    return ". ".join(p.rstrip(".") for p in parts if p) + "."
 
 
 _last_call = 0.0

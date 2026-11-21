@@ -70,6 +70,9 @@ def generate(feedback=None):
     work.mkdir(parents=True, exist_ok=True)
 
     scenes, clips, qa_notes = [], [], []
+    print(f"[images] provider={C.IMAGE_PROVIDER} model={C.POLLINATIONS_MODEL} key={'yes' if C.POLLINATIONS_TOKEN else 'NO'}")
+    if C.IMAGE_PROVIDER == "pollinations" and not C.POLLINATIONS_TOKEN:
+        qa_notes.append("⚠️ POLLINATIONS_TOKEN secret not found: used the low-quality anonymous model")
     for i, sc in enumerate(ep["scenes"]):
         seed = C.CHARACTER_SEED + day * 100 + i * 7 + (len(feedback) if feedback else 0)
         img, ok, why = None, False, ""
