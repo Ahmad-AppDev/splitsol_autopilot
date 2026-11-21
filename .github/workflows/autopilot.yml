@@ -1,15 +1,21 @@
 name: SplitSol autopilot
+run-name: "autopilot: ${{ inputs.command || 'scheduled' }}"
 
 on:
   schedule:
     - cron: "47 11 * * *"     # daily ~4:47 PM Pakistan time: make the next episode
-    - cron: "*/15 * * * *"    # every 15 min: check your Telegram taps
     - cron: "13 3 * * 1"      # weekly: refresh Instagram token
   workflow_dispatch:
     inputs:
       command:
-        description: "generate | poll | refresh"
-        default: "generate"
+        description: "generate | approve | redo | refresh | poll"
+        type: choice
+        options: [generate, approve, redo, refresh, poll]
+        default: generate
+      feedback:
+        description: "Note for redo (optional)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -29,9 +35,8 @@ jobs:
         id: cmd
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then c="${{ inputs.command }}";
-          elif [ "${{ github.event.schedule }}" = "47 11 * * *" ]; then c=generate;
           elif [ "${{ github.event.schedule }}" = "13 3 * * 1" ]; then c=refresh;
-          else c=poll; fi
+          else c=generate; fi
           echo "c=$c" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
@@ -42,7 +47,7 @@ jobs:
       - name: Install
         run: |
           pip install -r requirements.txt
-          if [ "${{ steps.cmd.outputs.c }}" != "refresh" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; fi
+          if [ "${{ steps.cmd.outputs.c }}" = "generate" ] || [ "${{ steps.cmd.outputs.c }}" = "redo" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; fi
 
       - name: Run
         env:
@@ -60,6 +65,7 @@ jobs:
           IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || 'pollinations' }}
           POLLINATIONS_MODEL: ${{ vars.POLLINATIONS_MODEL || 'flux' }}
           CHARACTER_REF_URL: ${{ vars.CHARACTER_REF_URL }}
+          FEEDBACK: ${{ inputs.feedback }}
           TTS_VOICE: ${{ vars.TTS_VOICE || 'en-US-AndrewMultilingualNeural' }}
         run: python -m autopilot.main ${{ steps.cmd.outputs.c }}
 
