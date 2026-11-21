@@ -62,8 +62,9 @@ def _gemini_image(prompt, seed):
     model = C.env("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     body = {"contents": [{"parts": [{"text": prompt + " Vertical 9:16 image."}]}]}
-    r = requests.post(url, params={"key": C.GEMINI_API_KEY}, json=body, timeout=180)
-    r.raise_for_status()
+    r = requests.post(url, headers={"x-goog-api-key": C.GEMINI_API_KEY}, json=body, timeout=180)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Gemini image error {r.status_code}: {r.text[:300]}")
     for p in r.json()["candidates"][0]["content"]["parts"]:
         if "inlineData" in p:
             return base64.b64decode(p["inlineData"]["data"])

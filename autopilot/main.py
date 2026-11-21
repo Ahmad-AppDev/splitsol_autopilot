@@ -6,6 +6,7 @@
 """
 import datetime
 import os
+import re
 import json
 import subprocess
 import sys
@@ -273,7 +274,11 @@ def main():
     except Exception as e:
         try:
             st = load()
-            st["last_error"] = {"command": cmd, "message": str(e)[:500], "at": now()}
+            msg = re.sub(r"(key|token|access_token)=[^&\s]+", r"\1=***", str(e))
+            for secret in (C.GEMINI_API_KEY, C.POLLINATIONS_TOKEN, C.IG_ACCESS_TOKEN, C.TIKTOK_CLIENT_SECRET):
+                if secret:
+                    msg = msg.replace(secret, "***")
+            st["last_error"] = {"command": cmd, "message": msg[:500], "at": now()}
             save(st)
         except Exception:
             pass

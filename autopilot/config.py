@@ -13,7 +13,7 @@ def env(name, default=None, required=False):
     return v
 
 GEMINI_API_KEY = env("GEMINI_API_KEY")
-GEMINI_MODEL = env("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = env("GEMINI_MODEL")  # empty = auto-pick the newest Flash model your key can use
 VOICE = env("TTS_VOICE", "en-US-AndrewMultilingualNeural")
 IMAGE_PROVIDER = env("IMAGE_PROVIDER", "pollinations")  # pollinations | gemini
 POLLINATIONS_MODEL = env("POLLINATIONS_MODEL", "flux")  # try gptimage / kontext / seedream for better art
